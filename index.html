@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Habit Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+
+    <h1>Habit Tracker</h1>
+
+    <!-- Add Habit -->
+    <div class="input-section">
+      <input type="text" id="habitInput" placeholder="Enter habit">
+      <button id="addBtn">Add Habit</button>
+    </div>
+
+    <!-- Daily Progress -->
+    <div class="progress-container">
+      <h3>Daily Progress</h3>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="dailyProgress"></div>
+      </div>
+
+      <p id="dailyText">0%</p>
+    </div>
+
+    <!-- Monthly Progress -->
+    <div class="progress-container">
+      <h3>Monthly Progress</h3>
+
+      <div class="progress-bar">
+        <div class="progress-fill monthly-fill" id="monthlyProgress"></div>
+      </div>
+
+      <p id="monthlyText">0%</p>
+    </div>
+
+    <!-- Habit List -->
+    <div id="habitList"></div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
