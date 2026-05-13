@@ -54,7 +54,7 @@ function renderHabits() {
 
 function addHabit() {
 
-  const habitName = habitInput.value.trim();
+  const habitName = habitInput.value.trim().charAt(0).toUpperCase() + habitInput.value.trim().slice(1);
 
   if (habitName === "") {
     alert("Please enter a habit");
