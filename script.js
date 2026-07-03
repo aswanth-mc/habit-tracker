@@ -1,137 +1,116 @@
-const habitInput = document.getElementById("habitInput");
-const addBtn = document.getElementById("addBtn");
-const habitList = document.getElementById("habitList");
+import {
+  loadHabits,
+  saveHabits,
+  loadTheme,
+  saveTheme,
+  loadPreferences,
+  savePreferences,
+  resetAll,
+} from "./utils/storage.js";
+import { initSidebar, setActiveSection } from "./components/sidebar.js";
+import { initToast, initModals } from "./components/modal.js";
+import { initHabits, renderHabits } from "./components/habits.js";
+import { renderDashboard } from "./components/dashboard.js";
+import { initAnalytics, renderAnalytics } from "./components/analytics.js";
+import { initSettings, renderSettings } from "./components/settings.js";
+import { startReminderChecker } from "./utils/notifications.js";
 
-const dailyProgress = document.getElementById("dailyProgress");
-const monthlyProgress = document.getElementById("monthlyProgress");
+const state = {
+  habits: loadHabits(),
+  theme: loadTheme(),
+  preferences: loadPreferences(),
+  currentSection: "dashboard",
+};
 
-const dailyText = document.getElementById("dailyText");
-const monthlyText = document.getElementById("monthlyText");
-
-let habits = JSON.parse(localStorage.getItem("habits")) || [];
-
-function saveHabits() {
-  localStorage.setItem("habits", JSON.stringify(habits));
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme;
 }
 
-function renderHabits() {
-  habitList.innerHTML = "";
+function persistHabits() {
+  saveHabits(state.habits);
+  renderAll();
+}
 
-  habits.forEach((habit, index) => {
+const handlers = {
+  save: persistHabits,
+  add(habit) {
+    state.habits.push(habit);
+    persistHabits();
+  },
+  delete(id) {
+    state.habits = state.habits.filter((h) => h.id !== id);
+    persistHabits();
+  },
+  render() {
+    renderHabits(state.habits, handlers);
+  },
+  getSoundEnabled() {
+    return state.preferences.soundEnabled;
+  },
+  reset() {
+    resetAll();
+    state.habits = [];
+    state.theme = "dark";
+    state.preferences = loadPreferences();
+    applyTheme();
+    setActiveSection("dashboard");
+    state.currentSection = "dashboard";
+    renderAll();
+    initSettings(state, { render: renderAll, reset: handlers.reset });
+  },
+};
 
-    const habitDiv = document.createElement("div");
-    habitDiv.classList.add("habit");
+function renderAll() {
+  renderHabits(state.habits, handlers);
+  renderDashboard(state.habits);
+  renderSettings(state);
 
-    if (habit.completed) {
-      habitDiv.classList.add("completed");
+  if (state.currentSection === "analytics") {
+    renderAnalytics(state.habits);
+  }
+}
+
+function navigate(section) {
+  state.currentSection = section;
+  setActiveSection(section);
+
+  if (section === "analytics") {
+    renderAnalytics(state.habits);
+  }
+}
+
+function init() {
+  applyTheme();
+  initToast();
+  initModals();
+  initSidebar(navigate);
+  initHabits(handlers);
+  initAnalytics(() => state.habits);
+  initSettings(state, { render: renderAll, reset: handlers.reset });
+
+  document.getElementById("sidebar-theme-btn").addEventListener("click", () => {
+    state.theme = state.theme === "dark" ? "light" : "dark";
+    saveTheme(state.theme);
+    applyTheme();
+    const themeToggle = document.getElementById("theme-toggle");
+    if (themeToggle) themeToggle.checked = state.theme === "light";
+    renderAll();
+  });
+
+  startReminderChecker(
+    () => state,
+    (prefs) => {
+      state.preferences = prefs;
+      savePreferences(prefs);
     }
-
-    habitDiv.innerHTML = `
-      <div class="habit-left">
-        <span>${habit.name}</span>
-      </div>
-
-      <div class="actions">
-        <button class="complete-btn" onclick="toggleComplete(${index})">
-          ✓
-        </button>
-
-        <button class="edit-btn" onclick="editHabit(${index})">
-          Edit
-        </button>
-
-        <button class="delete-btn" onclick="deleteHabit(${index})">
-          Delete
-        </button>
-      </div>
-    `;
-
-    habitList.appendChild(habitDiv);
-  });
-
-  updateProgress();
-}
-
-function addHabit() {
-
-  const habitName = habitInput.value.trim().charAt(0).toUpperCase() + habitInput.value.trim().slice(1);
-
-  if (habitName === "") {
-    alert("Please enter a habit");
-    return;
-  }
-
-  habits.push({
-    name: habitName,
-    completed: false
-  });
-
-  saveHabits();
-  renderHabits();
-
-  habitInput.value = "";
-}
-
-function deleteHabit(index) {
-  habits.splice(index, 1);
-
-  saveHabits();
-  renderHabits();
-}
-
-function editHabit(index) {
-
-  const newName = prompt(
-    "Edit Habit",
-    habits[index].name
   );
 
-  if (newName !== null && newName.trim() !== "") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") renderAll();
+  });
 
-    habits[index].name = newName;
-
-    saveHabits();
-    renderHabits();
-  }
+  renderAll();
+  setActiveSection("dashboard");
 }
 
-function toggleComplete(index) {
-
-  habits[index].completed = !habits[index].completed;
-
-  saveHabits();
-  renderHabits();
-}
-
-function updateProgress() {
-
-  const total = habits.length;
-
-  const completed = habits.filter(
-    habit => habit.completed
-  ).length;
-
-  let dailyPercent = 0;
-
-  if (total > 0) {
-    dailyPercent = Math.round(
-      (completed / total) * 100
-    );
-  }
-
-  dailyProgress.style.width = dailyPercent + "%";
-  dailyText.innerText = dailyPercent + "% Completed";
-
-  // Monthly Progress Example
-  const monthlyPercent = Math.min(
-    Math.round(dailyPercent * 0.8),
-    100
-  );
-
-  monthlyProgress.style.width = monthlyPercent + "%";
-  monthlyText.innerText = monthlyPercent + "% Completed";
-}
-
-addBtn.addEventListener("click", addHabit);
-
-renderHabits();
+init();
