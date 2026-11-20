@@ -1,4 +1,4 @@
-import { exportData, resetAll, saveTheme, savePreferences } from "../utils/storage.js";
+import { exportData, importData, resetAll, saveTheme, savePreferences } from "../utils/storage.js";
 import { requestNotificationPermission, getNotificationPermission } from "../utils/notifications.js";
 import { openConfirmModal, showToast } from "./modal.js";
 
@@ -62,6 +62,59 @@ export function initSettings(state, onUpdate) {
     a.click();
     URL.revokeObjectURL(url);
     showToast("Data exported", "success");
+  });
+
+  const importBtn = document.createElement("button");
+  importBtn.type = "button";
+  importBtn.className = "btn btn--secondary btn--ripple";
+  importBtn.textContent = "Import JSON";
+  importBtn.setAttribute("aria-label", "Import habits and settings from a JSON file");
+
+  const importInput = document.createElement("input");
+  importInput.type = "file";
+  importInput.accept = ".json,application/json";
+  importInput.hidden = true;
+  importInput.setAttribute("aria-label", "Choose a JSON backup file to import");
+  exportBtn.parentElement.insertBefore(importBtn, exportBtn);
+  exportBtn.parentElement.appendChild(importInput);
+
+  importBtn.addEventListener("click", () => importInput.click());
+  importInput.addEventListener("change", async () => {
+    const file = importInput.files?.[0];
+    if (!file) return;
+
+    try {
+      const json = await file.text();
+      // Validate before asking, so a bad file can never replace the current data.
+      const parsed = JSON.parse(json);
+      const habits = Array.isArray(parsed) ? parsed : parsed?.habits;
+      if (!Array.isArray(habits)) throw new Error("The JSON file must contain a habits array.");
+
+      openConfirmModal(
+        `Import ${habits.length} habit${habits.length === 1 ? "" : "s"}? This will replace your current habits and settings.`,
+        () => {
+          try {
+            const imported = importData(json);
+            state.habits = imported.habits;
+            state.theme = imported.theme;
+            state.preferences = imported.preferences;
+            document.documentElement.dataset.theme = state.theme;
+            themeToggle.checked = state.theme === "light";
+            soundToggle.checked = state.preferences.soundEnabled;
+            notifToggle.checked = state.preferences.notificationsEnabled;
+            reminderTime.value = state.preferences.reminderTime;
+            onUpdate.render();
+            showToast(`Imported ${state.habits.length} habit${state.habits.length === 1 ? "" : "s"}`, "success");
+          } catch (error) {
+            showToast(error.message || "Could not import this file", "error");
+          }
+        }
+      );
+    } catch (error) {
+      showToast(error.message || "Could not read this JSON file", "error");
+    } finally {
+      importInput.value = "";
+    }
   });
 
   resetBtn.addEventListener("click", () => {
