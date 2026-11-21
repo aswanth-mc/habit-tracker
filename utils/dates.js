@@ -6,6 +6,10 @@ export function getDateKey(date = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
+export function getYesterdayKey() {
+  return getDateKey(addDays(new Date(), -1));
+}
+
 export function parseDateKey(key) {
   const [y, m, d] = key.split("-").map(Number);
   return new Date(y, m - 1, d);

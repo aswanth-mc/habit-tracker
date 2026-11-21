@@ -553,7 +553,61 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
+  align-items: center;
+}
+
+.date-toggle-group {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 2px;
+}
+
+.date-toggle-group .btn {
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.date-toggle-group .btn:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.date-toggle-group .btn.btn--active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.date-toggle-group .btn[data-date="yesterday"].btn--active {
+  background: var(--warning);
+  color: #fff;
+}
+
+.habit-date-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-md);
+  color: var(--warning);
+  font-size: 0.88rem;
+  font-weight: 500;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.habit-date-banner svg {
+  flex-shrink: 0;
 }
 
 .habit-list {

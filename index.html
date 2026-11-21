@@ -129,6 +129,10 @@
     <!-- Habits -->
     <section id="section-habits" class="section">
       <div class="habits-toolbar">
+        <div class="date-toggle-group" id="habit-date-toggle" role="group" aria-label="Select Date">
+          <button type="button" class="btn btn--sm btn--active" data-date="today" id="habit-date-today">Today</button>
+          <button type="button" class="btn btn--sm" data-date="yesterday" id="habit-date-yesterday">Yesterday</button>
+        </div>
         <input type="search" id="habit-search" class="input" placeholder="Search habits..." />
         <select id="habit-filter-category" class="select">
           <option value="all">All Categories</option>
@@ -140,7 +144,7 @@
         </select>
         <select id="habit-filter-status" class="select">
           <option value="all">All Status</option>
-          <option value="completed">Completed Today</option>
+          <option value="completed" id="habit-status-completed-opt">Completed</option>
           <option value="incomplete">Incomplete</option>
           <option value="archived">Archived</option>
         </select>
@@ -150,6 +154,10 @@
           <option value="name">Sort: Name</option>
         </select>
         <button id="add-habit-btn" class="btn btn--primary btn--ripple">+ Add Habit</button>
+      </div>
+      <div id="habit-date-banner" class="habit-date-banner" hidden>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM8 4.5v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Viewing and logging habits for <strong>Yesterday (<span id="habit-banner-date"></span>)</strong>. Check off habits you completed yesterday!</span>
       </div>
       <div id="habit-list" class="habit-list"></div>
       <div id="habit-empty" class="empty-state" hidden>

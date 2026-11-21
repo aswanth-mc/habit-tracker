@@ -1,8 +1,18 @@
-import { getDateKey } from "../utils/dates.js";
+import { getDateKey, getYesterdayKey, formatDisplayDate } from "../utils/dates.js";
 import { createHabit, saveHabits, CATEGORIES } from "../utils/storage.js";
-import { isCompletedToday } from "../utils/progress.js";
+import { isCompletedOnDate } from "../utils/progress.js";
 import { getConsistency } from "../utils/streaks.js";
 import { openHabitModal, openConfirmModal, showToast } from "./modal.js";
+
+let selectedDateMode = "today"; // "today" | "yesterday"
+
+export function getSelectedDateKey() {
+  return selectedDateMode === "yesterday" ? getYesterdayKey() : getDateKey();
+}
+
+export function getSelectedDateMode() {
+  return selectedDateMode;
+}
 
 let filters = {
   search: "",
@@ -12,6 +22,32 @@ let filters = {
 };
 
 let searchTimeout = null;
+
+function updateDateUI() {
+  const banner = document.getElementById("habit-date-banner");
+  const dateSpan = document.getElementById("habit-banner-date");
+  const completedOpt = document.getElementById("habit-status-completed-opt");
+
+  if (completedOpt) {
+    completedOpt.textContent = selectedDateMode === "yesterday" ? "Completed (Yesterday)" : "Completed (Today)";
+  }
+
+  if (banner) {
+    if (selectedDateMode === "yesterday") {
+      if (dateSpan) dateSpan.textContent = formatDisplayDate(getYesterdayKey());
+      banner.hidden = false;
+    } else {
+      banner.hidden = true;
+    }
+  }
+
+  const dateToggle = document.getElementById("habit-date-toggle");
+  if (dateToggle) {
+    dateToggle.querySelectorAll("button[data-date]").forEach((b) => {
+      b.classList.toggle("btn--active", b.dataset.date === selectedDateMode);
+    });
+  }
+}
 
 function playCompletionSound(enabled) {
   if (!enabled) return;
@@ -34,6 +70,7 @@ function playCompletionSound(enabled) {
 
 function filterHabits(habits) {
   let result = [...habits];
+  const targetDateKey = getSelectedDateKey();
 
   if (filters.search) {
     const q = filters.search.toLowerCase();
@@ -45,9 +82,9 @@ function filterHabits(habits) {
   }
 
   if (filters.status === "completed") {
-    result = result.filter((h) => !h.archived && isCompletedToday(h));
+    result = result.filter((h) => !h.archived && isCompletedOnDate(h, targetDateKey));
   } else if (filters.status === "incomplete") {
-    result = result.filter((h) => !h.archived && !isCompletedToday(h));
+    result = result.filter((h) => !h.archived && !isCompletedOnDate(h, targetDateKey));
   } else if (filters.status === "archived") {
     result = result.filter((h) => h.archived);
   } else {
@@ -66,14 +103,15 @@ function filterHabits(habits) {
 }
 
 function renderHabitCard(habit, onUpdate) {
-  const done = isCompletedToday(habit);
+  const targetDateKey = getSelectedDateKey();
+  const done = isCompletedOnDate(habit, targetDateKey);
   const card = document.createElement("div");
   card.className = `habit-card${done ? " habit-card--done" : ""}${habit.archived ? " habit-card--archived" : ""}`;
   card.dataset.id = habit.id;
 
   card.innerHTML = `
     <div class="habit-card__left">
-      <button class="habit-check${done ? " habit-check--done" : ""}" data-action="toggle" aria-label="Toggle completion">
+      <button class="habit-check${done ? " habit-check--done" : ""}" data-action="toggle" aria-label="Toggle completion for ${selectedDateMode}">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div class="habit-card__color" style="background:${habit.color}"></div>
@@ -107,15 +145,18 @@ function renderHabitCard(habit, onUpdate) {
     const action = btn.dataset.action;
 
     if (action === "toggle") {
-      const today = getDateKey();
+      const activeDateKey = getSelectedDateKey();
       if (!habit.completedDates) habit.completedDates = [];
-      const idx = habit.completedDates.indexOf(today);
+      const idx = habit.completedDates.indexOf(activeDateKey);
       if (idx >= 0) {
         habit.completedDates.splice(idx, 1);
+        const dayLabel = selectedDateMode === "yesterday" ? " for yesterday" : "";
+        showToast(`"${habit.title}" marked incomplete${dayLabel}`, "info");
       } else {
-        habit.completedDates.push(today);
+        habit.completedDates.push(activeDateKey);
         playCompletionSound(onUpdate.getSoundEnabled());
-        showToast(`"${habit.title}" completed!`, "success");
+        const dayLabel = selectedDateMode === "yesterday" ? " for yesterday!" : "!";
+        showToast(`"${habit.title}" completed${dayLabel}`, "success");
       }
       onUpdate.save();
     } else if (action === "edit") {
@@ -142,6 +183,19 @@ function renderHabitCard(habit, onUpdate) {
 }
 
 export function initHabits(onUpdate) {
+  const dateToggle = document.getElementById("habit-date-toggle");
+  if (dateToggle) {
+    dateToggle.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-date]");
+      if (!btn) return;
+      const mode = btn.dataset.date;
+      if (mode === selectedDateMode) return;
+      selectedDateMode = mode;
+      updateDateUI();
+      onUpdate.render();
+    });
+  }
+
   document.getElementById("add-habit-btn").addEventListener("click", () => {
     openHabitModal(null, ({ title, category, color }) => {
       const habit = createHabit({ title, category, color });
@@ -166,9 +220,12 @@ export function initHabits(onUpdate) {
       onUpdate.render();
     });
   });
+
+  updateDateUI();
 }
 
 export function renderHabits(habits, onUpdate) {
+  updateDateUI();
   const list = document.getElementById("habit-list");
   const empty = document.getElementById("habit-empty");
   const filtered = filterHabits(habits);

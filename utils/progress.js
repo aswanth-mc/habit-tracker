@@ -4,8 +4,12 @@ export function getActiveHabits(habits) {
   return habits.filter((h) => !h.archived);
 }
 
+export function isCompletedOnDate(habit, dateKey) {
+  return (habit.completedDates || []).includes(dateKey);
+}
+
 export function isCompletedToday(habit) {
-  return (habit.completedDates || []).includes(getDateKey());
+  return isCompletedOnDate(habit, getDateKey());
 }
 
 export function getDailyProgress(habits) {
